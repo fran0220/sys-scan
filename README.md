@@ -14,6 +14,71 @@
 6. 重构为Vue3+Vite+TS+Naive UI，支持响应式布局  
 7. 支持GitHub Actions 一键部署  
 8. 支持Nginx反向代理，可通过80/443端口访问
+9. 新增期货分析功能，支持国内主要期货品种的技术分析和行情查询
+
+## 期货分析功能
+
+最新版本增加了期货分析功能，可以对国内主要期货品种进行技术分析和行情查询。
+
+### 主要特性
+
+- 支持国内主要期货交易所（上期所、大商所、郑商所、中金所）的期货品种
+- 提供期货品种的K线图、成交量、持仓量等技术指标分析
+- 支持期货品种的搜索和快速查询
+- 提供期货合约的基本信息和最新行情数据
+- 支持期货分析结果的导出和分享
+
+### 技术实现
+
+- 前端使用Vue3+TypeScript实现，确保类型安全和代码质量
+- 使用Axios进行API请求，并添加了完善的类型定义
+- 实现了请求和响应拦截器，支持JWT认证和错误处理
+- 使用自定义Logger工具进行日志记录，便于调试和问题排查
+- 后端使用Python FastAPI实现，支持异步处理和流式响应
+
+### 在Ubuntu服务器上部署
+
+对于Ubuntu x64服务器，推荐以下部署步骤：
+
+```bash
+# 克隆仓库
+git clone https://github.com/cassianvale/stock-scanner.git
+cd stock-scanner
+
+# 创建并配置.env文件
+cp .env.example .env
+# 编辑.env文件，配置必要的API密钥和其他参数
+
+# 安装系统依赖
+sudo apt-get update
+sudo apt-get install -y python3-dev python3-venv libxml2-dev libxslt1-dev nodejs npm
+
+# 创建Python虚拟环境
+python3 -m venv venv
+source venv/bin/activate
+
+# 安装Python依赖
+pip install -r requirements.txt
+
+# 安装前端依赖
+cd frontend
+npm install
+cd ..
+
+# 启动后端服务
+python web_server.py &
+
+# 启动前端开发服务器
+cd frontend
+npm run dev
+```
+
+### 注意事项
+
+- 期货分析功能需要配置正确的API密钥才能使用
+- 在Ubuntu环境下测试和部署可以避免Mac环境下可能遇到的依赖问题
+- 确保服务器有足够的内存和CPU资源，特别是在处理大量期货数据时
+- 建议使用Python 3.10或更高版本，但避免使用3.13版本，以确保最佳兼容性
 
 ## Docker镜像一键部署
 
