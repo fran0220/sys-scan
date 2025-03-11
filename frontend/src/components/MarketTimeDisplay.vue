@@ -30,8 +30,13 @@
                  :style="{ width: marketInfo.cnMarket.progressPercentage + '%' }">
             </div>
             <div class="progress-markers" :class="{'reverse-markers': !marketInfo.cnMarket.isOpen}">
-              <div class="progress-marker" :class="marketInfo.cnMarket.isOpen ? 'start' : 'end'">开盘</div>
-              <div class="progress-marker" :class="marketInfo.cnMarket.isOpen ? 'end' : 'start'">收盘</div>
+              <div class="progress-marker start">开盘</div>
+              <div class="progress-marker end">收盘</div>
+            </div>
+            <div class="cn-market-special-markers" v-if="marketInfo.cnMarket.isOpen">
+              <div class="special-marker morning-end" title="上午收盘">11:30</div>
+              <div class="special-marker afternoon-start" title="下午开盘">13:00</div>
+              <div class="special-marker closing-auction" title="收盘集合竞价">14:57</div>
             </div>
           </div>
         </div>
@@ -58,8 +63,8 @@
                  :style="{ width: marketInfo.hkMarket.progressPercentage + '%' }">
             </div>
             <div class="progress-markers" :class="{'reverse-markers': !marketInfo.hkMarket.isOpen}">
-              <div class="progress-marker" :class="marketInfo.hkMarket.isOpen ? 'start' : 'end'">开盘</div>
-              <div class="progress-marker" :class="marketInfo.hkMarket.isOpen ? 'end' : 'start'">收盘</div>
+              <div class="progress-marker start">开盘</div>
+              <div class="progress-marker end">收盘</div>
             </div>
           </div>
         </div>
@@ -86,8 +91,8 @@
                  :style="{ width: marketInfo.usMarket.progressPercentage + '%' }">
             </div>
             <div class="progress-markers" :class="{'reverse-markers': !marketInfo.usMarket.isOpen}">
-              <div class="progress-marker" :class="marketInfo.usMarket.isOpen ? 'start' : 'end'">开盘</div>
-              <div class="progress-marker" :class="marketInfo.usMarket.isOpen ? 'end' : 'start'">收盘</div>
+              <div class="progress-marker start">开盘</div>
+              <div class="progress-marker end">收盘</div>
             </div>
           </div>
         </div>
@@ -141,87 +146,95 @@ function calculateProgressPercentage(market: MarketStatus): number {
   // 从nextTime中提取时间信息来计算进度
   const timeText = market.nextTime;
   
-  // 如果没有时间文本，返回默认值50%
-  if (!timeText) return 50;
+  // 如果没有时间文本，返回默认值
+  if (!timeText) return market.isOpen ? 10 : 10;
   
   try {
     // 特殊情况处理
     if (timeText.includes("已休市") || timeText.includes("已闭市")) {
-      return market.isOpen ? 100 : 0; // 休市状态：开市时为100%，休市时为0%
+      return market.isOpen ? 100 : 0; // 开市状态为100%（收盘），休市状态为0%（刚收盘）
     }
     
     if (timeText.includes("即将开市") || timeText.includes("即将开盘")) {
-      return market.isOpen ? 5 : 95; // 即将开市：开市时为5%，休市时为95%
+      return market.isOpen ? 10 : 90; // 开市状态为10%（刚开盘），休市状态为90%（即将开盘）
     }
     
     // 提取小时和分钟，支持多种格式
-    let hours = 0;
-    let minutes = 0;
+    let totalMinutes = 0;
     
     // 匹配"XX小时XX分钟"格式
     const hourMinuteMatch = timeText.match(/(\d+)\s*小时\s*(\d+)\s*分钟/);
     if (hourMinuteMatch) {
-      hours = parseInt(hourMinuteMatch[1]);
-      minutes = parseInt(hourMinuteMatch[2]);
+      totalMinutes = parseInt(hourMinuteMatch[1]) * 60 + parseInt(hourMinuteMatch[2]);
     } else {
       // 单独匹配小时和分钟
       const hourMatch = timeText.match(/(\d+)\s*小时/);
       const minuteMatch = timeText.match(/(\d+)\s*分钟/);
       
-      hours = hourMatch ? parseInt(hourMatch[1]) : 0;
-      minutes = minuteMatch ? parseInt(minuteMatch[1]) : 0;
+      totalMinutes = (hourMatch ? parseInt(hourMatch[1]) * 60 : 0) + 
+                     (minuteMatch ? parseInt(minuteMatch[1]) : 0);
     }
     
-    // 总分钟数
-    const totalMinutes = hours * 60 + minutes;
-    
-    // 根据市场类型设置不同的交易时长
-    let tradingMinutes = 240; // 默认交易时长4小时
-    let nonTradingMinutes = 1200; // 默认非交易时长20小时
+    // 根据市场类型设置交易时长
+    let tradingMinutes = 245; // 最新A股交易时长(自2024年10月8日起): 4小时5分钟
     
     // 根据市场调整时长
-    if (timeText.includes("A股") || timeText.includes("沪深") || 
-        (!timeText.includes("港股") && !timeText.includes("美股"))) {
-      tradingMinutes = 240; // A股交易4小时
-      nonTradingMinutes = 1200; // 非交易20小时
-    } else if (timeText.includes("港股")) {
-      tradingMinutes = 390; // 港股交易6.5小时
-      nonTradingMinutes = 1050; // 非交易17.5小时
-    } else if (timeText.includes("美股")) {
-      tradingMinutes = 390; // 美股交易6.5小时
-      nonTradingMinutes = 1050; // 非交易17.5小时
+    if (timeText.includes("港股") || timeText.includes("美股")) {
+      tradingMinutes = 390; // 港股和美股交易6.5小时
     }
     
     // 根据市场状态计算进度
     if (market.isOpen) {
-      // 市场开市状态 - 从开盘到收盘方向
+      // 开市状态：从开盘到收盘方向 (左到右)
       if (timeText.includes("距离收市") || timeText.includes("距离闭市") || 
           timeText.includes("距离休市") || timeText.includes("距离收盘")) {
-        // 计算已经交易的时间比例
-        const tradedMinutes = tradingMinutes - totalMinutes;
-        const percentage = (tradedMinutes / tradingMinutes) * 100;
-        return Math.max(0, Math.min(100, percentage));
+        // 处理集合竞价阶段
+        if (timeText.includes("A股") || timeText.includes("沪深") || (!timeText.includes("港股") && !timeText.includes("美股"))) {
+          // A股收盘集合竞价特殊处理 (14:57-15:00)
+          if (totalMinutes <= 3) {
+            // 收盘集合竞价阶段，进度为95%到100%
+            return Math.max(95, Math.min(100, 95 + ((3 - totalMinutes) / 3) * 5));
+          }
+          
+          // 常规交易时段
+          // 剩余时间占比越小，进度越大
+          return Math.max(10, Math.min(95, 10 + ((tradingMinutes - totalMinutes) / tradingMinutes) * 85));
+        } else {
+          // 其他市场
+          return Math.max(10, Math.min(100, 100 - ((totalMinutes / tradingMinutes) * 90)));
+        }
+      } else if (timeText.includes("集合竞价") || timeText.includes("开盘竞价")) {
+        // 开盘集合竞价阶段，进度设为5%
+        return 5;
       } else {
-        // 处理交易开始阶段但没有明确提示的情况
-        return 5; // 开盘初期设为5%
+        return 10; // 开盘初期
       }
     } else {
-      // 市场休市状态 - 从收盘到开盘方向
+      // 休市状态：从收盘到开盘方向 (右到左，但标记已反转，所以仍然是左侧低、右侧高)
       if (timeText.includes("距离开市") || timeText.includes("距离开盘")) {
-        // 计算接近开盘的时间比例
-        const closedMinutes = nonTradingMinutes - totalMinutes;
-        const percentage = (closedMinutes / nonTradingMinutes) * 100;
-        // 反转比例：0% 表示刚刚休市，100% 表示即将开盘
-        return Math.max(0, Math.min(100, 100 - percentage));
+        // A股市场特殊处理
+        if (timeText.includes("A股") || timeText.includes("沪深") || (!timeText.includes("港股") && !timeText.includes("美股"))) {
+          // 距离开盘竞价小于10分钟
+          if (totalMinutes <= 10) {
+            // 即将开始集合竞价
+            return Math.max(80, Math.min(95, 80 + ((10 - totalMinutes) / 10) * 15));
+          }
+        }
+        
+        // 距离开盘时间越短，进度越大
+        const nonTradingMinutes = 24 * 60 - tradingMinutes; // 非交易时长
+        return Math.max(10, Math.min(80, 10 + ((nonTradingMinutes - totalMinutes) / nonTradingMinutes) * 70));
+      } else if (timeText.includes("午间休息") || timeText.includes("午休")) {
+        // 午间休息，进度设为50%
+        return 50;
       } else {
-        // 处理休市开始阶段但没有明确提示的情况
-        return 5; // 刚休市设为5%
+        return 10; // 休市初期
       }
     }
   } catch (error) {
     console.error("计算市场进度时出错:", error);
     // 出错时返回默认值
-    return market.isOpen ? 50 : 5;
+    return market.isOpen ? 50 : 10;
   }
 }
 
@@ -376,7 +389,7 @@ onBeforeUnmount(() => {
 .market-progress-bar {
   height: 100%;
   border-radius: 2px;
-  transition: width 0.5s ease;
+  transition: width 0.8s cubic-bezier(0.25, 0.1, 0.25, 1);
   position: relative;
 }
 
@@ -399,6 +412,7 @@ onBeforeUnmount(() => {
   background-color: rgba(24, 160, 88, 0.9);
   box-shadow: 0 0 8px rgba(24, 160, 88, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3);
   border: 1px solid rgba(24, 160, 88, 1);
+  position: relative;
 }
 
 .progress-closed {
@@ -428,12 +442,94 @@ onBeforeUnmount(() => {
   flex-direction: row-reverse;
 }
 
+/* 标记样式 */
 .progress-marker {
   position: relative;
   white-space: nowrap; /* 防止文本换行 */
   max-width: 45%; /* 限制宽度，防止重叠 */
   overflow: hidden; /* 隐藏溢出内容 */
   text-overflow: ellipsis; /* 显示省略号 */
+}
+
+/* A股特殊时间段标记 */
+.cn-market-special-markers {
+  position: absolute;
+  top: 6px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  pointer-events: none;
+}
+
+.special-marker {
+  position: absolute;
+  font-size: 0.6rem;
+  color: rgba(80, 80, 80, 0.7);
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.special-marker::before {
+  content: '';
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  height: 5px;
+  width: 1px;
+  background-color: rgba(80, 80, 80, 0.5);
+}
+
+.morning-end {
+  left: 47%;
+}
+
+.afternoon-start {
+  left: 70%;
+}
+
+.closing-auction {
+  left: 95%;
+  color: rgba(24, 160, 88, 0.8);
+}
+
+.closing-auction::before {
+  background-color: rgba(24, 160, 88, 0.6);
+}
+
+/* 增加进度条平滑过渡效果 */
+.market-progress-bar {
+  transition: width 0.8s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+/* 增强集合竞价阶段的视觉效果 */
+.progress-open::before {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: -3px;
+  bottom: -3px;
+  width: 5%;
+  border-radius: 0 3px 3px 0;
+  background-color: rgba(24, 160, 88, 0.3);
+  box-shadow: 0 0 5px rgba(24, 160, 88, 0.3);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+/* 收盘集合竞价阶段指示器 */
+.progress-open[style*="width: 95%"]::before,
+.progress-open[style*="width: 96%"]::before,
+.progress-open[style*="width: 97%"]::before,
+.progress-open[style*="width: 98%"]::before,
+.progress-open[style*="width: 99%"]::before,
+.progress-open[style*="width: 100%"]::before {
+  opacity: 1;
+  animation: blink 1s infinite alternate;
+}
+
+@keyframes blink {
+  from { opacity: 0.3; }
+  to { opacity: 1; }
 }
 
 @keyframes shimmer {
@@ -552,6 +648,23 @@ onBeforeUnmount(() => {
   .market-block {
     max-width: 360px; /* 移动端下的最大宽度 */
   }
+  
+  /* 移动端特殊标记适配 */
+  .special-marker {
+    font-size: 0.55rem;
+  }
+  
+  .morning-end {
+    left: 47%;
+  }
+  
+  .afternoon-start {
+    left: 68%;
+  }
+  
+  .closing-auction {
+    left: 93%;
+  }
 }
 
 /* 小屏幕手机适配 */
@@ -625,6 +738,15 @@ onBeforeUnmount(() => {
   
   .market-block {
     max-width: 300px; /* 小屏幕下的最大宽度 */
+  }
+  
+  /* 小屏幕特殊标记适配 */
+  .special-marker {
+    font-size: 0.5rem;
+  }
+  
+  .cn-market-special-markers {
+    display: none; /* 在最小屏幕上隐藏特殊标记，保持界面简洁 */
   }
 }
 
