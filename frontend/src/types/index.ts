@@ -39,6 +39,29 @@ export interface StockInfo {
   analysis_date?: string;
 }
 
+export interface FuturesInfo {
+  code: string;
+  name?: string;
+  price?: number;
+  changePercent?: number;
+  analysis?: string;
+  analysisStatus: 'waiting' | 'analyzing' | 'completed' | 'error';
+  error?: string;
+  score?: number;
+  recommendation?: string;
+  price_change?: number;
+  rsi?: number;
+  ma_trend?: string;
+  macd_signal?: string;
+  volume_status?: string;
+  open_interest?: number;
+  open_interest_status?: string;
+  volatility?: number;
+  analysis_date?: string;
+  exchange?: string;
+  type?: string;
+}
+
 export interface SearchResult {
   symbol: string;
   name: string;
@@ -69,6 +92,14 @@ export interface AnalyzeRequest {
   api_timeout?: number;
 }
 
+export interface AnalyzeFuturesRequest {
+  futures_codes: string[];
+  api_url?: string;
+  api_key?: string;
+  api_model?: string;
+  api_timeout?: number;
+}
+
 export interface TestApiRequest {
   api_url: string;
   api_key: string;
@@ -87,10 +118,13 @@ export interface StreamInitMessage {
   stream_type: 'single' | 'batch';
   stock_code?: string;
   stock_codes?: string[];
+  futures_code?: string;
+  futures_codes?: string[];
 }
 
 export interface StreamAnalysisUpdate {
-  stock_code: string;
+  stock_code?: string;
+  futures_code?: string;
   analysis?: string;
   status: 'analyzing' | 'completed' | 'error';
   error?: string;
@@ -106,6 +140,11 @@ export interface StreamAnalysisUpdate {
   ma_trend?: string;
   macd_signal?: string;
   volume_status?: string;
+  open_interest?: number;
+  open_interest_status?: string;
+  volatility?: number;
   analysis_date?: string;
+  exchange?: string;
+  type?: string;
   ai_analysis_chunk?: string;
 }

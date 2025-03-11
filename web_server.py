@@ -38,8 +38,8 @@ REQUIRE_LOGIN = bool(LOGIN_PASSWORD.strip())
 
 app = FastAPI(
     title="Stock Scanner API",
-    description="异步股票分析API",
-    version="1.0.0"
+    description="异步股票和期货分析API",
+    version="1.1.0"
 )
 
 # 添加CORS中间件
@@ -393,6 +393,15 @@ async def test_api_connection(request: TestAPIRequest, username: str = Depends(v
 async def need_login():
     """检查是否需要登录"""
     return {"require_login": REQUIRE_LOGIN}
+
+# 导入期货路由
+try:
+    from routes.futures_routes import router as futures_router
+    # 包含期货路由
+    app.include_router(futures_router)
+    logger.info("期货分析路由已加载")
+except ImportError as e:
+    logger.warning(f"无法加载期货分析路由: {str(e)}")
 
 # 设置静态文件
 frontend_dist = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'frontend', 'dist')

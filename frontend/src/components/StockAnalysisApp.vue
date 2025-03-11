@@ -1,15 +1,18 @@
 <template>
   <div class="app-container mobile-bottom-extend">
     <!-- 公告横幅 -->
-    <AnnouncementBanner 
-      v-if="announcement && showAnnouncementBanner" 
-      :content="announcement" 
+    <AnnouncementBanner
+      v-if="announcement && showAnnouncementBanner"
+      :content="announcement"
       :auto-close-time="5"
       @close="handleAnnouncementClose"
     />
     
     <n-layout class="main-layout">
       <n-layout-content class="main-content mobile-content-container">
+        
+        <!-- 导航栏 -->
+        <NavigationBar />
         
         <!-- 市场时间显示 -->
         <MarketTimeDisplay :is-mobile="isMobile" />
@@ -184,6 +187,7 @@ import ApiConfigPanel from './ApiConfigPanel.vue';
 import StockSearch from './StockSearch.vue';
 import StockCard from './StockCard.vue';
 import AnnouncementBanner from './AnnouncementBanner.vue';
+import NavigationBar from './NavigationBar.vue';
 
 import { apiService } from '@/services/api';
 import type { StockInfo, ApiConfig, StreamInitMessage, StreamAnalysisUpdate } from '@/types';

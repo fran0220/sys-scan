@@ -2,6 +2,7 @@ import { createRouter, createWebHashHistory } from 'vue-router';
 import type { RouteRecordRaw } from 'vue-router';
 import { apiService } from '@/services/api';
 import StockAnalysisApp from '@/components/StockAnalysisApp.vue';
+import FuturesAnalysisApp from '@/components/FuturesAnalysisApp.vue';
 import LoginPage from '@/components/LoginPage.vue';
 
 const routes: Array<RouteRecordRaw> = [
@@ -9,6 +10,12 @@ const routes: Array<RouteRecordRaw> = [
     path: '/',
     name: 'Home',
     component: StockAnalysisApp,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/futures',
+    name: 'Futures',
+    component: FuturesAnalysisApp,
     meta: { requiresAuth: true }
   },
   {

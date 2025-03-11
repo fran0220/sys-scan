@@ -1,5 +1,5 @@
-import axios from 'axios';
-import type { AnalyzeRequest, TestApiRequest, TestApiResponse, SearchResult, LoginRequest, LoginResponse } from '@/types';
+import axios, { AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
+import type { AnalyzeRequest, TestApiRequest, TestApiResponse, SearchResult, LoginRequest, LoginResponse, AnalyzeFuturesRequest } from '@/types';
 
 // API前缀
 const API_PREFIX = '/api';
@@ -11,24 +11,24 @@ const axiosInstance = axios.create({
 
 // 请求拦截器，添加token
 axiosInstance.interceptors.request.use(
-  (config) => {
+  (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
     const token = localStorage.getItem('token');
-    if (token) {
+    if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => {
+  (error: AxiosError): Promise<AxiosError> => {
     return Promise.reject(error);
   }
 );
 
 // 响应拦截器，处理401错误
 axiosInstance.interceptors.response.use(
-  (response) => {
+  (response: AxiosResponse): AxiosResponse => {
     return response;
   },
-  (error) => {
+  (error: AxiosError): Promise<AxiosError> => {
     if (error.response && error.response.status === 401) {
       // 清除token
       localStorage.removeItem('token');
@@ -142,5 +142,49 @@ export const apiService = {
       // 默认为需要登录，确保安全
       return true;
     }
+  },
+
+  // 期货相关API
+  
+  // 搜索期货
+  searchFutures: async (keyword: string): Promise<SearchResult[]> => {
+    try {
+      const response = await axiosInstance.get('/futures/search', {
+        params: { keyword }
+      });
+      return response.data.results || [];
+    } catch (error) {
+      console.error('搜索期货时出错:', error);
+      return [];
+    }
+  },
+  
+  // 获取期货详情
+  getFuturesDetail: async (symbol: string): Promise<any> => {
+    try {
+      const response = await axiosInstance.get(`/futures/detail/${symbol}`);
+      return response.data;
+    } catch (error) {
+      console.error(`获取期货 ${symbol} 详情时出错:`, error);
+      throw error;
+    }
+  },
+  
+  // 获取主力合约列表
+  getMainContracts: async (): Promise<any[]> => {
+    try {
+      const response = await axiosInstance.get('/futures/main_contracts');
+      return response.data.contracts || [];
+    } catch (error) {
+      console.error('获取主力合约列表时出错:', error);
+      return [];
+    }
+  },
+  
+  // 分析期货
+  analyzeFutures: async (request: AnalyzeFuturesRequest) => {
+    return axiosInstance.post('/futures/analyze', request, {
+      responseType: 'stream'
+    });
   }
 };
